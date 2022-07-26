@@ -1,4 +1,5 @@
 import { memo, useCallback, useEffect, useRef, useState, createRef, createElement } from 'react';
+import { watch } from './watch';
 
 const UNIT = {
   COMPONENT: 'COMPONENT',
@@ -185,6 +186,15 @@ const commitHook = (project, store, hookStore) => {
   store.renderHook(MemoizedHook);
 };
 
+class InjectableHook {
+  static unit = UNIT.HOOK;
+
+  constructor(subscribe, once) {
+    this.subscribe = subscribe;
+    this.once = once;
+  }
+}
+
 const createHook = (store, project, dependencies, record = {}) => {
   const hookDependencyKeys = dependencies
     .filter(({ unit }) => unit === UNIT.HOOK_INJECTOR)
@@ -252,7 +262,7 @@ const createHook = (store, project, dependencies, record = {}) => {
     });
   };
 
-  return { subscribe, once };
+  return new InjectableHook(subscribe, once);
 };
 
 const createComponent = (store, project, dependencies, record) => {
@@ -423,4 +433,4 @@ const useAction = (actual) => {
   return actionRef.current.memoized;
 };
 
-export { configure, useAction };
+export { configure, useAction, watch };
