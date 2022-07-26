@@ -1,5 +1,5 @@
 export const FILTER = {
-    ALL: 'ALL',
-    CHECKED: 'CHECKED',
-    UNCHECKED: 'UNCHECKED',
-}
+  ALL: 'ALL',
+  CHECKED: 'CHECKED',
+  UNCHECKED: 'UNCHECKED',
+};

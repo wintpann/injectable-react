@@ -5,4 +5,4 @@ export const createNotificationService = injectable.constant(() => ({
   warn: (text) => toast.warn(text),
 }));
 
-export const injectNotificationService = () => injectable.inject.constant()('notificationService')
+export const injectNotificationService = () => injectable.inject.constant()('notificationService');
