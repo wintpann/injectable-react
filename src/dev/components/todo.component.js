@@ -9,13 +9,17 @@ export const Todo = ({ text, checked, id, removeTodo, toggleTodo }) => {
     <div className="todo">
       <input
         type="checkbox"
-        id={id}
-        className="todo_checkbox visually_hidden"
+        id={`todo-${id}`}
+        className="visually_hidden"
         checked={checked}
         onChange={onToggle}
       />
-      <label htmlFor={id} className={cx('todo-text', { 'todo-text_checked': checked })}>
-        {text}
+      <label
+        title={text}
+        htmlFor={`todo-${id}`}
+        className={cx('todo-text', { 'todo-text_checked': checked })}
+      >
+        <span className="hidden-scroll">{text}</span>
       </label>
       <span className="todo_cross" onClick={onDelete}>
         <CrossSvg />
