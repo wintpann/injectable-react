@@ -1,9 +1,13 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
-import { a } from '../core';
+
 
 const App = () => {
-  return <div>{a}</div>;
+  return (
+    <div>
+      it works
+    </div>
+  );
 };
 
 ReactDOM.render(<App />, document.getElementById('root'));
