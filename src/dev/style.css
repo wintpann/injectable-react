@@ -1,114 +1,174 @@
 #root {
-  background-color: #94647e;
-  background-image: linear-gradient(201deg, #94647e 0%, #87593c 50%, #203a4c 100%);
-  display: flex;
-  justify-content: center;
-  align-items: center;
+    background-color: #283853;
+    background-image: linear-gradient(190deg, #283853 0%, #6b738c 50%, #111c32 100%);
+    display: flex;
+    justify-content: center;
+    align-items: center;
 }
 
 .app {
-  backdrop-filter: blur(10px);
-  min-width: 300px;
-  width: 500px;
-  background: rgba(0, 0, 0, 0.1);
-  margin: 200px 20px;
-  padding: 20px;
-  box-shadow: 0 0 3px #333;
-  border-radius: 10px;
-  height: calc(100% - 200px);
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
+    backdrop-filter: blur(10px);
+    min-width: 300px;
+    width: 500px;
+    background: rgba(0, 0, 0, 0.1);
+    margin: 200px 20px;
+    padding: 20px;
+    box-shadow: 0 0 3px #333;
+    border-radius: 10px;
+    height: calc(100% - 200px);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
 }
 
 .top-bar {
-  padding: 10px 0;
-  display: flex;
+    padding: 10px 0;
+    display: flex;
 }
 
 .top-bar_input {
-  flex: 1;
-  border: none;
-  outline: none;
-  border-radius: 5px;
-  padding: 10px;
+    flex: 1;
+    border: none;
+    outline: none;
+    border-radius: 5px;
+    padding: 10px;
+
 }
 
 .top-bar_input::selection {
-  background: rgba(65, 50, 86, 0.5);
-  color: white;
+    background: rgba(65, 50, 86, 0.5);
+    color: white;
 }
 
 .todos-list {
-  overflow: auto;
-  margin-bottom: 10px;
+    overflow: auto;
+    margin-bottom: 10px;
 }
 
 .todos-list::-webkit-scrollbar {
-  display: none;
+    display: none;
 }
 
 .todo {
-  display: flex;
-  align-items: center;
-  border-radius: 10px;
-  background: rgba(0, 0, 0, 0.4);
-  color: navajowhite;
-  margin: 10px 0;
+    display: flex;
+    align-items: center;
+    border-radius: 10px;
+    background: rgba(17, 28, 50, 0.5);;
+    color: #ffffff;
+    margin: 10px 0;
 }
 
 .todo_checkbox {
-  margin: 0 10px;
-  cursor: pointer;
-  width: 20px;
-  height: 20px;
+    margin: 0 10px;
+    cursor: pointer;
+    width: 20px;
+    height: 20px;
 }
 
+.todo-text::before {
+    content: '';
+    display: block;
+    width: 20px;
+    height: 20px;
+    border: 1px solid #fff;
+    border-radius: 50%;
+    margin-right: 15px;
+    cursor: pointer;
+
+}
+
+.todo-text:hover::before {
+    background-color: rgba(126, 134, 154, 0.3);
+    box-shadow: 0px 0px 15px rgba(126, 134, 154, 0.2);
+}
+
+.todo-text_checked:hover::before {
+    background-color: rgba(255, 255, 255, 1);
+    box-shadow: 0px 0px 15px rgba(255, 255, 255, 0.2);
+}
+
+
 .todo_cross {
-  display: block;
-  margin-left: auto;
-  margin-right: 10px;
-  width: 20px;
-  height: 20px;
-  text-align: center;
-  padding: 2px;
-  background: brown;
-  border-radius: 50%;
-  cursor: pointer;
+    display: block;
+    margin-left: auto;
+    margin-right: 10px;
+    width: 20px;
+    height: 20px;
+    text-align: center;
+    padding: 2px;
+    background: #ffffff;
+    border-radius: 50%;
+    cursor: pointer;
+    box-shadow: inset 0px 0px 10px rgba(17, 28, 50, 0.3);
+}
+
+.todo_cross_img {
+    display: block;
+    width: 10px;
+    height: 10px;
+    position: relative;
+    top: 5px;
+    left: 5px;
+}
+
+.todo-text {
+    display: flex;
+    align-items: center;
+    margin: 15px auto 15px 20px;
 }
 
 .todo-text_checked {
-  text-decoration: line-through;
+    text-decoration: line-through;
+}
+
+.todo-text_checked::before {
+    content: '';
+    display: block;
+    background-color: #ffffff;
+    background-image: url("./assets/icon_ok.svg");
+    border-radius: 50%;
 }
 
 .footer {
-  background: rgba(24, 24, 24, 0.3);
-  border-radius: 5px;
-  color: white;
-  box-shadow: 0 0 3px #333;
-  display: flex;
-  justify-content: center;
-  overflow: hidden;
-  margin-top: auto;
-  flex: 0 0 fit-content;
+    background: rgba(17, 28, 50, 0.4);
+    border-radius: 5px;
+    color: white;
+    box-shadow: 0 0 3px #333;
+    display: flex;
+    justify-content: center;
+    overflow: hidden;
+    margin-top: auto;
+    flex: 0 0 fit-content;
 }
 
 .footer_label {
-  flex: 1;
-  display: flex;
-  justify-content: center;
-  padding: 10px;
-  cursor: pointer;
+    flex: 1;
+    display: flex;
+    color: #ffffff;
+    justify-content: center;
+    padding: 10px;
+    cursor: pointer;
+    transition-duration: 220ms;
 }
 
 .footer_label:hover {
-  background: rgba(255, 255, 255, 0.2);
+    background: rgba(126, 134, 154, 0.5);
+    box-shadow: inset 0px 0px 20px rgba(126, 134, 154, 0.2);
 }
 
 .footer input {
-  display: none;
+    display: none;
 }
 
 .footer input:checked + .footer_label {
-  background: seagreen;
+    background: rgba(255, 255, 255, 0.9);
+    color: #111c32;
+    box-shadow: 0px 0px 60px rgba(126, 134, 154, 1);
+
+}
+
+.visually_hidden {
+    position: absolute;
+    z-index: -1;
+    opacity: 0;
 }
