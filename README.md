@@ -5,3 +5,7 @@
 * Dev page
 * Typings
 * Watcher
+
+### 0.0.2 `27.07.2022`
+* Fix multiple component instances render
+* Fix typings

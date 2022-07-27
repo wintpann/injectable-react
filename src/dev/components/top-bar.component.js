@@ -9,7 +9,7 @@ export const TopBar = ({ text, setText, onEnterClick }) => {
   return (
     <div className="top-bar">
       <input
-        className="top-bar_input"
+        className="top-bar_input ellipsis"
         type="text"
         value={text}
         onChange={onChange}

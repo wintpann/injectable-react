@@ -195,6 +195,30 @@ export const configureTestcase = () => {
     },
   );
 
+  const SingleInstance = component(
+    inject.hook()('mainViewModel'),
+    (useMainViewModel) => (props) => {
+      const { firstCount } = useMainViewModel();
+      return <div>{`${firstCount}-${props.text}`}</div>;
+    },
+  );
+
+  const MultipleInstance = component(
+    inject.hook()('mainViewModel'),
+    SingleInstance,
+    (useMainViewModel, SingleInstance) => () => {
+      const { firstCount } = useMainViewModel();
+
+      return (
+        <div>
+          {firstCount % 2 === 0 ? <SingleInstance text={'first'} /> : <div>nocontent</div>}
+          <SingleInstance text={'second'} />
+          <div>pupa</div>
+        </div>
+      );
+    },
+  );
+
   const staticViewModel = createStaticViewModel();
   const mainViewModel = createMainViewModel({ staticViewModel });
   const firstCountViewModel = createFirstCountDependentViewModel({
@@ -211,6 +235,8 @@ export const configureTestcase = () => {
   });
 
   const FirstCountMainContainerResolved = FirstCountMainContainer({ firstCountViewModel });
+
+  const MultipleInstanceResolved = MultipleInstance({ mainViewModel });
 
   staticViewModel.subscribe((updated) => {
     store.data.staticViewModel.prev = store.data.staticViewModel.curr;
@@ -264,5 +290,6 @@ export const configureTestcase = () => {
     secondLevelConstant,
     thirdLevelConstant,
     OuterContainerResolved,
+    MultipleInstanceResolved,
   };
 };

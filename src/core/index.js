@@ -1,4 +1,4 @@
-import { memo, useCallback, useEffect, useRef, useState, createRef, createElement } from 'react';
+import { memo, useCallback, useEffect, useRef, useState, createElement } from 'react';
 import { watch } from './watch';
 
 const UNIT = {
@@ -15,22 +15,18 @@ const uid = (() => {
 })();
 const isNotEmpty = (value) => value !== undefined;
 const IdleComponent = () => null;
+const createRef = (current) => ({ current });
 
 const array = {
   last: (arr) => arr[arr.length - 1],
   exceptLast: (arr) => arr.slice(0, arr.length - 1),
   create: (count) => new Array(count),
-  reset: (arr) => {
-    const len = arr.length;
-    arr.length = 0;
-    arr.length = len;
-  },
 };
 
 const emptyObject = () => Object.create(null);
 
 const useUpdate = (dispatcher) => {
-  const [, dispatch] = useState(emptyObject);
+  const [_, dispatch] = useState(emptyObject);
 
   if (dispatcher) {
     dispatcher.current = dispatch;
@@ -39,7 +35,41 @@ const useUpdate = (dispatcher) => {
   return useCallback(() => dispatch(emptyObject()), []);
 };
 
+const useUpdates = (dispatchers) => {
+  const [shouldUpdate, dispatch] = useState(emptyObject);
+
+  useEffect(() => {
+    const dispatcher = { dispatch, active: true };
+    dispatchers.current.push(dispatcher);
+    return () => {
+      dispatcher.active = false;
+    };
+  }, []);
+
+  return shouldUpdate;
+};
+
 const updateDispatcher = (dispatcher) => dispatcher.current?.(emptyObject());
+
+const updateDispatchers = (dispatchers) => {
+  const dispatchersLength = dispatchers.current.length;
+  const deleteCandidates = [];
+
+  for (let i = 0; i < dispatchersLength; i++) {
+    const dispatcher = dispatchers.current[i];
+
+    if (!dispatcher.active) {
+      deleteCandidates.push(dispatcher);
+      continue;
+    }
+
+    dispatcher.dispatch(emptyObject());
+  }
+
+  deleteCandidates.forEach((dispatcher) =>
+    dispatchers.current.splice(dispatchers.current.indexOf(dispatcher), 1),
+  );
+};
 
 const getStateProxy = (store) =>
   new Proxy(emptyObject(), {
@@ -96,7 +126,7 @@ const getPureWatcher = (subscribe, initial) => {
     return store.state;
   };
 
-  return [hook, store];
+  return hook;
 };
 
 const getProxyWatcher = (subscribe, initial) => {
@@ -142,7 +172,7 @@ const getProxyWatcher = (subscribe, initial) => {
     return store.arePropsCollected ? store.state : stateProxy;
   };
 
-  return [hook, store];
+  return hook;
 };
 
 const getWatcher = (subscribe, initial) =>
@@ -225,10 +255,9 @@ const createHook = (store, project, dependencies, record = {}) => {
         hookDependenciesState.filter(isNotEmpty).length === hookDependenciesLength;
       if (!dependenciesAreReady) return;
 
-      const dependentHooks = hookDependencyKeys.map((key, index) => {
-        const [hook] = getWatcher(record[key].subscribe, hookDependenciesState[index]);
-        return hook;
-      });
+      const dependentHooks = hookDependencyKeys.map((key, index) =>
+        getWatcher(record[key].subscribe, hookDependenciesState[index]),
+      );
 
       const resolvedHook = () =>
         project(...combineDependencies(dependencies, dependentHooks, dependentConstants));
@@ -269,102 +298,61 @@ const createComponent = (store, project, dependencies, record) => {
   const componentDependencies = dependencies.filter(({ unit }) => unit === UNIT.COMPONENT);
   const constantDependencies = dependencies.filter(({ unit }) => unit === UNIT.CONSTANT_INJECTOR);
   const hookDependencies = dependencies.filter(({ unit }) => unit === UNIT.HOOK_INJECTOR);
+  const dependentComponents = componentDependencies.map((component) => component(record));
+  const dependentConstants = constantDependencies.map(({ key }) => record[key]);
   const hookDependenciesLength = hookDependencies.length;
 
   const componentStore = {
-    Component: IdleComponent,
-    ResolvedComponent: IdleComponent,
-    shouldRecommit: false,
-    dispatcher: createRef(),
-    update: () => updateDispatcher(componentStore.dispatcher),
     hookDependenciesState: array.create(hookDependenciesLength),
-    runningHookStore: array.create(hookDependenciesLength),
+    isReady: hookDependenciesLength === 0,
+    dispatchers: createRef([]),
+    update: () => updateDispatchers(componentStore.dispatchers),
   };
 
-  const dependentComponents = componentDependencies.map((composite) => composite(record));
-  const dependentConstants = constantDependencies.map(({ key }) => record[key]);
+  const updateOnReady = () => {
+    if (componentStore.isReady) return;
 
-  const commitOnReady = () => {
-    const hookDependenciesAreReady =
+    const storeIsReady =
       componentStore.hookDependenciesState.filter(isNotEmpty).length === hookDependenciesLength;
-
-    if (hookDependenciesAreReady) {
-      const hooks = hookDependencies.map(({ key }, index) => {
-        const [hook, store] = getWatcher(
-          record[key].subscribe,
-          componentStore.hookDependenciesState[index],
-        );
-        componentStore.runningHookStore[index] = store;
-        return hook;
-      });
-
-      componentStore.ResolvedComponent = project(
-        ...combineDependencies(dependencies, hooks, dependentConstants, dependentComponents),
-      );
-      componentStore.Component = componentStore.ResolvedComponent;
-      componentStore.update();
-    }
+    componentStore.isReady = storeIsReady;
+    if (storeIsReady) componentStore.update();
   };
 
-  const recommitOnReady = () => {
-    const hookDependenciesAreReady =
-      componentStore.hookDependenciesState.filter(isNotEmpty).length === hookDependenciesLength;
+  hookDependencies.forEach(({ key }, index) =>
+    record[key].subscribe((data) => {
+      componentStore.hookDependenciesState[index] = data;
+      updateOnReady();
+    }),
+  );
 
-    if (hookDependenciesAreReady) {
-      componentStore.runningHookStore.forEach((store, index) => {
-        store.isImmediateUpdate = true;
-        store.state = componentStore.hookDependenciesState[index];
-      });
-      componentStore.Component = componentStore.ResolvedComponent;
-      componentStore.update();
-    }
-  };
-
-  const recommit = () => {
-    if (hookDependenciesLength === 0) {
-      recommitOnReady();
-    } else {
-      hookDependencies.forEach(({ key }, index) =>
-        record[key].once((data) => {
-          componentStore.hookDependenciesState[index] = data;
-          recommitOnReady();
-        }),
-      );
-    }
-  };
-
-  const commit = () => {
-    if (hookDependenciesLength === 0) {
-      commitOnReady();
-    } else {
-      hookDependencies.forEach(({ key }, index) =>
-        record[key].once((data) => {
-          componentStore.hookDependenciesState[index] = data;
-          commitOnReady();
-        }),
-      );
-    }
-  };
-
-  const onUnmount = () => {
-    componentStore.Component = IdleComponent;
-    array.reset(componentStore.hookDependenciesState);
-    componentStore.shouldRecommit = true;
-  };
-
-  const onMount = () => {
-    componentStore.shouldRecommit ? recommit() : commit();
-    return onUnmount;
-  };
+  const localStoreFactory = () => ({ Component: IdleComponent });
 
   const Component = (props) => {
-    useUpdate(componentStore.dispatcher);
-    const { Component } = componentStore;
-    useEffect(onMount, []);
-    return createElement(Component, props);
+    const [store, setStore] = useState(localStoreFactory);
+    const shouldUpdate = useUpdates(componentStore.dispatchers);
+
+    useEffect(() => {
+      if (!componentStore.isReady) return;
+
+      const hooks = hookDependencies.map(({ key }, index) =>
+        getWatcher(record[key].subscribe, componentStore.hookDependenciesState[index]),
+      );
+
+      const ResolvedComponent = project(
+        ...combineDependencies(dependencies, hooks, dependentConstants, dependentComponents),
+      );
+
+      setStore({ Component: ResolvedComponent });
+    }, [shouldUpdate]);
+
+    return createElement(store.Component, props);
   };
 
   return memo(Component);
+};
+
+const invariant = (condition, message) => {
+  if (condition) throw new Error(message);
 };
 
 const configure = () => {
@@ -376,10 +364,20 @@ const configure = () => {
       store.Hooks.push({ key: uid(), Hook });
       store.update();
     },
+    holderInstancesCount: 0,
   };
 
   const InjectableHooksHolder = () => {
     useUpdate(store.dispatcher);
+
+    useEffect(() => {
+      store.holderInstancesCount++;
+      invariant(
+        store.holderInstancesCount > 1,
+        'InjectableHooksHolder should be rendered once at a top of your application',
+      );
+    }, []);
+
     return store.Hooks.map(({ Hook, key }) => createElement(Hook, { key }));
   };
 
