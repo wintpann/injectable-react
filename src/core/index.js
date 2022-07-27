@@ -351,6 +351,10 @@ const createComponent = (store, project, dependencies, record) => {
   return memo(Component);
 };
 
+const invariant = (condition, message) => {
+  if (condition) throw new Error(message);
+};
+
 const configure = () => {
   const store = {
     Hooks: [],
@@ -360,10 +364,20 @@ const configure = () => {
       store.Hooks.push({ key: uid(), Hook });
       store.update();
     },
+    holderInstancesCount: 0,
   };
 
   const InjectableHooksHolder = () => {
     useUpdate(store.dispatcher);
+
+    useEffect(() => {
+      store.holderInstancesCount++;
+      invariant(
+        store.holderInstancesCount > 1,
+        'InjectableHooksHolder should be rendered once at a top of your application',
+      );
+    }, []);
+
     return store.Hooks.map(({ Hook, key }) => createElement(Hook, { key }));
   };
 

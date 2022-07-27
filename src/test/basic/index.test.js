@@ -31,6 +31,31 @@ describe('injectable-react/basic', () => {
     await waitFor(() => findByText('outer third'));
   });
 
+  test('should render multiple component instances correctly', async () => {
+    const { MultipleInstanceResolved, InjectableHooksHolder, store } = configureTestcase();
+
+    const App = () => (
+      <>
+        <InjectableHooksHolder />
+        <MultipleInstanceResolved />
+      </>
+    );
+
+    const { findByText } = render(<App />);
+    await waitFor(() => findByText('0-first'));
+    await waitFor(() => findByText('0-second'));
+
+    act(() => store.data.mainViewModel.curr.updateFirstCount());
+
+    await waitFor(() => findByText('nocontent'));
+    await waitFor(() => findByText('1-second'));
+
+    act(() => store.data.mainViewModel.curr.updateFirstCount());
+
+    await waitFor(() => findByText('2-first'));
+    await waitFor(() => findByText('2-second'));
+  });
+
   test('should run hooks correctly with with proxy enabled', async () => {
     enableProxy();
     const { InjectableHooksHolder, store, assertUpdatesCount } = configureTestcase();
