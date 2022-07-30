@@ -35,41 +35,7 @@ const useUpdate = (dispatcher) => {
   return useCallback(() => dispatch(emptyObject()), []);
 };
 
-const useUpdates = (dispatchers) => {
-  const [shouldUpdate, dispatch] = useState(emptyObject);
-
-  useEffect(() => {
-    const dispatcher = { dispatch, active: true };
-    dispatchers.current.push(dispatcher);
-    return () => {
-      dispatcher.active = false;
-    };
-  }, []);
-
-  return shouldUpdate;
-};
-
 const updateDispatcher = (dispatcher) => dispatcher.current?.(emptyObject());
-
-const updateDispatchers = (dispatchers) => {
-  const dispatchersLength = dispatchers.current.length;
-  const deleteCandidates = [];
-
-  for (let i = 0; i < dispatchersLength; i++) {
-    const dispatcher = dispatchers.current[i];
-
-    if (!dispatcher.active) {
-      deleteCandidates.push(dispatcher);
-      continue;
-    }
-
-    dispatcher.dispatch(emptyObject());
-  }
-
-  deleteCandidates.forEach((dispatcher) =>
-    dispatchers.current.splice(dispatchers.current.indexOf(dispatcher), 1),
-  );
-};
 
 const getStateProxy = (store) =>
   new Proxy(emptyObject(), {
@@ -301,54 +267,57 @@ const createComponent = (store, project, dependencies, record) => {
   const dependentComponents = componentDependencies.map((component) => component(record));
   const dependentConstants = constantDependencies.map(({ key }) => record[key]);
   const hookDependenciesLength = hookDependencies.length;
+  const nothingToWait = hookDependenciesLength === 0;
 
-  const componentStore = {
-    hookDependenciesState: array.create(hookDependenciesLength),
-    isReady: hookDependenciesLength === 0,
-    dispatchers: createRef([]),
-    update: () => updateDispatchers(componentStore.dispatchers),
-  };
+  const HookDependentComponent = memo((props) => {
+    const componentStore = useRef({
+      Component: IdleComponent,
+      hookDependenciesState: array.create(hookDependenciesLength),
+    });
 
-  const updateOnReady = () => {
-    if (componentStore.isReady) return;
-
-    const storeIsReady =
-      componentStore.hookDependenciesState.filter(isNotEmpty).length === hookDependenciesLength;
-    componentStore.isReady = storeIsReady;
-    if (storeIsReady) componentStore.update();
-  };
-
-  hookDependencies.forEach(({ key }, index) =>
-    record[key].subscribe((data) => {
-      componentStore.hookDependenciesState[index] = data;
-      updateOnReady();
-    }),
-  );
-
-  const localStoreFactory = () => ({ Component: IdleComponent });
-
-  const Component = (props) => {
-    const [store, setStore] = useState(localStoreFactory);
-    const shouldUpdate = useUpdates(componentStore.dispatchers);
+    const update = useUpdate();
 
     useEffect(() => {
-      if (!componentStore.isReady) return;
+      const commitOnReady = () => {
+        const isReady =
+          componentStore.current.hookDependenciesState.filter(isNotEmpty).length ===
+          hookDependenciesLength;
+        if (!isReady) return;
 
-      const hooks = hookDependencies.map(({ key }, index) =>
-        getWatcher(record[key].subscribe, componentStore.hookDependenciesState[index]),
+        const hooks = hookDependencies.map(({ key }, index) =>
+          getWatcher(record[key].subscribe, componentStore.current.hookDependenciesState[index]),
+        );
+
+        componentStore.current.Component = project(
+          ...combineDependencies(dependencies, hooks, dependentConstants, dependentComponents),
+        );
+        update();
+      };
+
+      hookDependencies.forEach(({ key }, index) =>
+        record[key].once((data) => {
+          componentStore.current.hookDependenciesState[index] = data;
+          commitOnReady();
+        }),
       );
+    }, []);
 
-      const ResolvedComponent = project(
-        ...combineDependencies(dependencies, hooks, dependentConstants, dependentComponents),
-      );
+    return createElement(componentStore.current.Component, props);
+  });
 
-      setStore({ Component: ResolvedComponent });
-    }, [shouldUpdate]);
+  const hookFreeComponentStore = () => ({
+    Component: project(
+      ...combineDependencies(dependencies, [], dependentConstants, dependentComponents),
+    ),
+  });
 
-    return createElement(store.Component, props);
-  };
+  const HookFreeComponent = memo((props) => {
+    const [componentStore] = useState(hookFreeComponentStore);
 
-  return memo(Component);
+    return createElement(componentStore.Component, props);
+  });
+
+  return nothingToWait ? HookFreeComponent : HookDependentComponent;
 };
 
 const invariant = (condition, message) => {
