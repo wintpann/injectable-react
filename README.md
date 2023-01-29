@@ -1,3 +1,6 @@
+# DEPRECATED
+Having an application state described in context of components life-cycle is definitely bad idea
+
 # Injectable entities for your React application
 
 ## Installation
@@ -187,3 +190,6 @@ In order to resolve InjectableHook or InjectableComponent, just call returned fu
 
 ### 0.0.4 `08.08.2022`
 * Update readme
+
+### 0.0.6 `29.01.2023`
+* Add deprecation message
